@@ -26,13 +26,33 @@ router.post('/addTask', aeh(async function (req, res) {
 //*****  Update Task     ******//
 router.post('/update', aeh(async function (req, res) {
   try {
-    const { id, name, status, parentId } = req.body
+    let { id, name, status, parentId } = req.body
     if (!id || !name || !status) {
       return res.status(403).error("Please pass all details")
     }
     let DataExists = await Task.find({ _id: id })
     if (!DataExists || DataExists.length == 0) {
       return res.status(403).error("Task do not exists!")
+    }
+    if(DataExists[0]._doc.parentId !== parentId){
+      let newParentChilds = await Task.find({parentId: parentId})
+      console.log(newParentChilds)
+      if(newParentChilds.length > 0){
+        const filterData = newParentChilds.filter((ele) => ele._doc.status !== 'Completed');
+        if(filterData.length > 0){
+          let update = await Task.updateOne({ _id: id }, { status: 'In Progress' })
+          return res.status(200).json({
+            success: true,
+            data: 'Updated Successfully'
+          })
+        } else if (filterData.length == 0){
+          let update = await Task.updateOne({ _id: id }, { status })
+          return res.status(200).json({
+            success: true,
+            data: 'Updated Successfully'
+          })
+        }
+      }
     }
     await Task.updateOne({ _id: id }, { name, status, parentId })
     return res.status(200).json({
