@@ -24,21 +24,60 @@ router.post('/addTask', aeh(async function (req, res) {
 }));
 
 //*****  Update Task     ******//
-router.put('/update', aeh(async function (req, res) {
+router.post('/update', aeh(async function (req, res) {
   try {
-    const { id, name, dob, salary, joiningDate, releivingDate, contact, status } = req.body
-    if (!id || !name) {
-      return res.status(403).error("Please pass id & name")
+    const { id, name, status, parentId } = req.body
+    if (!id || !name || !status) {
+      return res.status(403).error("Please pass all details")
     }
-    let EmployeeExists = await Task.find({ _id: id })
-    if (!EmployeeExists || EmployeeExists.length == 0) {
+    let DataExists = await Task.find({ _id: id })
+    if (!DataExists || DataExists.length == 0) {
       return res.status(403).error("Task do not exists!")
     }
-    await Task.updateOne({ _id: id }, { name, dob, salary, joiningDate, releivingDate, contact, status })
+    await Task.updateOne({ _id: id }, { name, status, parentId })
     return res.status(200).json({
       success: true,
       data: 'Updated Successfully'
     })
+  }
+  catch (error) {
+    console.log(error)
+    throw error
+  }
+}));
+
+//*****  Update Status     ******//
+router.post('/updateStatus', aeh(async function (req, res) {
+  try {
+    let { id, status } = req.body
+    if (!id) {
+      return res.status(403).error("Please pass Id")
+    }
+    let DataExists = await Task.find({ _id: id })
+    if (!DataExists || DataExists.length == 0) {
+      return res.status(403).error("Task do not exists!")
+    }
+    let ChildTasks = await Task.find({ parentId: id })
+    if(ChildTasks.length == 0){
+      let update = await Task.updateOne({ _id: id }, { status })
+      return res.status(200).json({
+        success: true,
+        data: 'Updated Successfully'
+      })
+    }
+    if(ChildTasks.length !== 0){
+      const filterData = ChildTasks.filter((ele) => ele._doc.status !== 'Completed');
+      console.log(filterData)
+      if(filterData.length > 0){
+        return res.status(403).error("Child Tasks Are Not Completed!")
+      } else if (filterData.length == 0){
+        let update = await Task.updateOne({ _id: id }, { status })
+        return res.status(200).json({
+          success: true,
+          data: 'Updated Successfully'
+        })
+      }
+    }
   }
   catch (error) {
     console.log(error)
@@ -81,6 +120,25 @@ router.get('/id/:taskId', aeh(async function (req, res) {
     return res.status(200).json({
       success: true,
       data: data[0]
+    })
+  }
+  catch (error) {
+    console.log(error)
+    throw error
+  }
+}));
+
+//*****     Child task by parent id     ******//
+router.get('/childTasks/:taskId', aeh(async function (req, res) {
+  try {
+    const { taskId } = req.params
+    if (!taskId) {
+      return res.status(403).error("Please pass id")
+    }
+    let data = await Task.find({ parentId: taskId })
+    return res.status(200).json({
+      success: true,
+      data: data
     })
   }
   catch (error) {
