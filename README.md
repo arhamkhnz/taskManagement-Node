@@ -1,4 +1,5 @@
 # Task Management (Backend)
+Kindly consider leaving a :star: if you like the repository.
 
 ## About The Project
 
